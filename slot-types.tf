@@ -69,7 +69,7 @@ resource "aws_lexv2models_slot_type" "party_type" {
   }
 
   value_selection_setting {
-    resolution_strategy = "TopResolution"
+    resolution_strategy = "OriginalValue"
   }
 }
 
@@ -130,7 +130,7 @@ resource "aws_lexv2models_slot_type" "dietary_restrictions" {
   }
 
   value_selection_setting {
-    resolution_strategy = "TopResolution"
+    resolution_strategy = "OriginalValue"
   }
 }
 
@@ -197,7 +197,7 @@ resource "aws_lexv2models_slot_type" "music_genre" {
   }
 
   value_selection_setting {
-    resolution_strategy = "TopResolution"
+    resolution_strategy = "OriginalValue"
   }
 }
 
@@ -246,7 +246,7 @@ resource "aws_lexv2models_slot_type" "party_mood" {
   }
 
   value_selection_setting {
-    resolution_strategy = "TopResolution"
+    resolution_strategy = "OriginalValue"
   }
 }
 
@@ -307,7 +307,7 @@ resource "aws_lexv2models_slot_type" "color_scheme" {
   }
 
   value_selection_setting {
-    resolution_strategy = "TopResolution"
+    resolution_strategy = "OriginalValue"
   }
 }
 
@@ -338,6 +338,6 @@ resource "aws_lexv2models_slot_type" "budget" {
   }
 
   value_selection_setting {
-    resolution_strategy = "TopResolution"
+    resolution_strategy = "OriginalValue"
   }
 }
