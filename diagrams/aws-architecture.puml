@@ -1,0 +1,66 @@
+@startuml
+!theme aws-orange
+
+title AWS Architecture: Party Planner Bot Stack
+
+skinparam backgroundColor #FFFFFF
+skinparam component {
+  BackgroundColor #FF9900
+  BorderColor #232F3E
+  TextAlignment center
+}
+
+package "📱 User" {
+  component [Browser] as Browser
+}
+
+package "🌐 Content Delivery" {
+  component [CloudFront\nDistribution] as CloudFront
+  component [S3 Bucket\n(Private Origin)] as S3
+}
+
+package "🔐 Authentication" {
+  component [Cognito\nIdentity Pool] as Cognito
+  component [IAM Role\n(Unauthenticated)] as IAMRole
+}
+
+package "🤖 Bot & AI" {
+  component [Amazon Lex V2] as Lex
+  component [Lambda\nFunction] as Lambda
+  component [Amazon Bedrock\n(Claude)"] as Bedrock
+}
+
+' Connections
+Browser --> CloudFront : 1. GET /index.html\n(HTTPS)
+
+CloudFront --> S3 : 2. Fetch via OAI\n(Private access)
+
+Browser --> Cognito : 3. GetId &\nGetCredentials
+
+Cognito --> IAMRole : 4. Assume role\n(temp credentials)
+
+Browser --> Lex : 5. RecognizeText\n(signed request)
+
+Lex --> Lambda : 6. Invoke fulfillment\nhook
+
+Lambda --> Bedrock : 7. Call model\nwith prompt
+
+Bedrock --> Lambda : 8. Generated\nplan text
+
+Lambda --> Lex : 9. Return Fulfilled\nresponse
+
+Lex --> Browser : 10. Bot message\n(sanitized)
+
+note right of S3
+  Static chat UI
+  (index.html)
+  Cached & versioned
+end note
+
+note right of Lambda
+  Python handler
+  Extracts slots
+  Calls Bedrock
+end note
+
+@enduml
