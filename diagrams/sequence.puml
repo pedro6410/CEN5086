@@ -1,0 +1,29 @@
+@startuml
+title Sequence: Browser -> Lex V2 -> Lambda -> Bedrock
+actor User as Browser
+participant CloudFront
+participant S3
+participant Cognito
+participant "Amazon Lex V2" as Lex
+participant "Lambda: CompletePartyPlan" as Lambda
+participant Bedrock
+
+Browser -> CloudFront: GET /index.html
+CloudFront -> S3: GET object (index.html)
+S3 --> CloudFront: 200 OK (index.html)
+CloudFront --> Browser: 200 OK (index.html)
+
+note over Browser,Cognito: Browser initializes AWS SDK
+Browser -> Cognito: GetIdentityId / GetCredentials (unauthenticated)
+Cognito --> Browser: Temporary AWS credentials
+
+note over Browser,Lex: User types message
+Browser -> Lex: RecognizeText / PostText (signed with temp creds)
+Lex -> Lambda: Invoke (fulfillment code hook)
+Lambda -> Bedrock: Invoke model (prompt with slots)
+Bedrock --> Lambda: Model response (plan text)
+Lambda --> Lex: Fulfillment result (sessionState with Close/Fulfilled)
+Lex --> Browser: Bot response (message + session state)
+Browser --> Browser: Render message (sanitize & markdown)
+
+@enduml

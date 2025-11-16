@@ -47,7 +47,7 @@ resource "aws_lambda_function" "complete_party_plan" {
   function_name    = "CompletePartyPlanFunction"
   role             = aws_iam_role.lambda_exec.arn
   handler          = "handler.lambda_handler"
-  runtime          = "python3.14"
+  runtime          = "python3.13"
   source_code_hash = data.archive_file.complete_party_plan.output_base64sha256
 
   # small timeout; adjust if you do more work
