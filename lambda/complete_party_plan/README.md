@@ -1,20 +1,24 @@
 # CompletePartyPlan Lambda
 
-This folder contains a minimal AWS Lambda handler for fulfilling the `CompletePartyPlan` intent from an Amazon Lex V2 bot.
+Fulfillment handler for the `CompletePartyPlan` Lex V2 intent.
 
-Files:
-- `handler.py` — Python 3.9+ Lambda handler.
+## What it does
 
-Quick notes:
-- The Terraform resource in the repo references `lambda/complete_party_plan/deployment.zip` as the function package.
-- Before running `terraform apply`, create the zip package (example below).
+1. Receives a Lex V2 fulfillment request with party slots (guest count, theme, dietary restrictions)
+2. Builds an AI prompt from the slot values
+3. Calls Amazon Bedrock (Llama 3.1 8B) with guardrails enabled
+4. Returns the generated party plan to Lex (marked as Fulfilled)
 
-Create deployment package (run from repository root):
+## Files
+
+- `handler.py` — Python 3.9+ Lambda handler (boto3 required)
+
+## Deployment
+
+Packaging is automated in Terraform (`data.archive_file` in `lambda.tf`). Simply run:
 
 ```bash
-cd lambda/complete_party_plan
-zip -r ../deployment.zip handler.py
-cd ../..
+terraform apply
 ```
 
-After creating `deployment.zip`, run your normal Terraform workflow: `terraform init` then `terraform apply`.
+The `lambda.tf` resource will package this folder and deploy it automatically.
