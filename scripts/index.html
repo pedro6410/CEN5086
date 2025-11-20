@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Party Bot - Plan Your Perfect Party</title>
+    <!-- Favicon (prevents 404/403 errors) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75'>🎉</text></svg>">
+    <!-- Markdown renderer and sanitizer for formatting bot responses -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@2.4.0/dist/purify.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+            max-height: 700px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px 12px 0 0;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        #chatBox {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f9f9f9;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            animation: slideIn 0.3s ease-in-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.bot {
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            word-wrap: break-word;
+        }
+
+        .message.user .message-content {
+            background: #667eea;
+            color: white;
+            border-radius: 12px 0 12px 12px;
+        }
+
+        .message.bot .message-content {
+            background: #e8e8e8;
+            color: #333;
+            border-radius: 0 12px 12px 12px;
+        }
+
+        .message.system .message-content {
+            background: #fff3cd;
+            color: #856404;
+            border-radius: 12px;
+            text-align: center;
+            width: 100%;
+        }
+
+        .input-area {
+            padding: 20px;
+            display: flex;
+            gap: 10px;
+            background: white;
+        }
+
+        #userInput {
+            flex: 1;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        #userInput:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        #sendButton {
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        #sendButton:hover {
+            background: #764ba2;
+        }
+
+        #sendButton:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #667eea;
+            margin-right: 5px;
+            animation: bounce 1.4s infinite;
+        }
+
+        .loading:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .loading:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes bounce {
+            0%, 80%, 100% {
+                opacity: 0.3;
+                transform: scale(0.8);
+            }
+            40% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎉 Party Bot</h1>
+            <p>Plan your perfect party with AI assistance</p>
+        </div>
+
+        <div id="chatBox"></div>
+
+        <div class="input-area">
+            <input
+                type="text"
+                id="userInput"
+                placeholder="Tell me about your party plans..."
+                autocomplete="off"
+            />
+            <button id="sendButton">Send</button>
+        </div>
+    </div>
+
+    <!-- AWS SDK v3 (using working bundles) -->
+    <script async src="https://sdk.amazonaws.com/js/aws-sdk-2.1484.0.min.js"></script>
+
+    <script>
+        // ==========================================
+        // Configuration - UPDATE THESE VALUES
+        // ==========================================
+        const CONFIG = {
+            region: 'us-east-1',
+            cognitoIdentityPoolId: 'us-east-1:0b7461e4-82d2-4012-b343-ec42f9a88b74',
+            botId: 'ULRAWXYWLD',
+            botAliasId: 'QPZZ71F6VJ',
+            localeId: 'en_US',
+            sessionId: 'party-bot-session-' + Date.now(),
+        };
+
+        // ==========================================
+        // Global Variables
+        // ==========================================
+        let chatBox = document.getElementById('chatBox');
+        let userInput = document.getElementById('userInput');
+        let sendButton = document.getElementById('sendButton');
+        let lexClient = null;
+
+        // ==========================================
+        // Initialize AWS
+        // ==========================================
+        async function initializeAWS() {
+            try {
+                // Wait for AWS SDK to load
+                let attempts = 0;
+                while (!window.AWS && attempts < 50) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+
+                if (!window.AWS) {
+                    throw new Error('AWS SDK failed to load');
+                }
+
+                // Configure AWS SDK
+                AWS.config.region = CONFIG.region;
+
+                // Create credentials from Cognito Identity Pool
+                AWS.config.credentials = new AWS.CognitoIdentityCredentials({
+                    IdentityPoolId: CONFIG.cognitoIdentityPoolId,
+                });
+
+                // Create Lex client
+                lexClient = new AWS.LexRuntimeV2();
+
+                addSystemMessage('✓ Connected to Party Bot. Ready to chat!');
+                userInput.focus();
+            } catch (error) {
+                console.error('Error initializing AWS:', error);
+                addSystemMessage('❌ Failed to connect. Check browser console.');
+                sendButton.disabled = true;
+            }
+        }
+
+        // ==========================================
+        // Helper Functions
+        // ==========================================
+        function addSystemMessage(text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message system';
+            messageDiv.innerHTML = `<div class="message-content">${text}</div>`;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function addUserMessage(text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user';
+            messageDiv.innerHTML = `<div class="message-content">${escapeHtml(text)}</div>`;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function addBotMessage(text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message bot';
+
+            // Render markdown if marked is available, sanitize with DOMPurify
+            let html = '';
+            try {
+                if (window.marked && window.DOMPurify) {
+                    html = DOMPurify.sanitize(marked.parse(String(text || '')));
+                } else {
+                    // Fallback: escape HTML and preserve line breaks
+                    html = escapeHtml(String(text || '')).replace(/\n/g, '<br>');
+                }
+            } catch (e) {
+                console.error('Error rendering bot message:', e);
+                html = escapeHtml(String(text || '')).replace(/\n/g, '<br>');
+            }
+
+            messageDiv.innerHTML = `<div class="message-content">${html}</div>`;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message bot';
+            messageDiv.id = 'typingIndicator';
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="typing-indicator">
+                        <span class="loading"></span>
+                        <span class="loading"></span>
+                        <span class="loading"></span>
+                    </div>
+                </div>
+            `;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // ==========================================
+        // Send Message
+        // ==========================================
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message || !lexClient) return;
+
+            addUserMessage(message);
+            userInput.value = '';
+            sendButton.disabled = true;
+            showTypingIndicator();
+
+            try {
+                // Call Lex V2 RecognizeText API
+                const params = {
+                    botId: CONFIG.botId,
+                    botAliasId: CONFIG.botAliasId,
+                    localeId: CONFIG.localeId,
+                    sessionId: CONFIG.sessionId,
+                    text: message,
+                };
+
+                lexClient.recognizeText(params, function(err, data) {
+                    removeTypingIndicator();
+
+                    if (err) {
+                        console.error('Error:', err);
+                        addBotMessage(`❌ Error: ${err.message || 'Failed to send message'}`);
+                    } else {
+                        if (data.messages && data.messages.length > 0) {
+                            data.messages.forEach(msg => {
+                                if (msg.content) addBotMessage(msg.content);
+                            });
+                        } else {
+                            addBotMessage('I understand. Let me process that...');
+                        }
+                        console.log('Session State:', data.sessionState);
+                    }
+
+                    sendButton.disabled = false;
+                    userInput.focus();
+                });
+            } catch (error) {
+                console.error('Error sending message:', error);
+                removeTypingIndicator();
+                addBotMessage(`❌ Error: ${error.message}`);
+                sendButton.disabled = false;
+                userInput.focus();
+            }
+        }
+
+        // ==========================================
+        // Event Listeners
+        // ==========================================
+        sendButton.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // ==========================================
+        // Initialize on Load
+        // ==========================================
+        window.addEventListener('load', function() {
+            initializeAWS().catch(err => {
+                console.error('Failed to initialize:', err);
+                addSystemMessage('❌ Initialization error. Check browser console.');
+            });
+        });
+    </script>
+</body>
+</html>

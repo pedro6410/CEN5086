@@ -238,7 +238,9 @@ resource "aws_lexv2models_intent" "CompletePartyPlan" {
 
   fulfillment_code_hook {
     active  = true
-    enabled = false
+    enabled = true
+    # Point the fulfillment hook to the Lambda we created in lambda.tf
+    #lambda_arn = aws_lambda_function.complete_party_plan.arn
     post_fulfillment_status_specification {
       failure_next_step {
         dialog_action {
@@ -302,6 +304,7 @@ resource "aws_lexv2models_intent" "CompletePartyPlan" {
         success_next_step {
           dialog_action {
             type = "FulfillIntent"
+            suppress_next_message = true
           }
           intent {
 
@@ -351,6 +354,12 @@ resource "aws_lexv2models_intent" "CompletePartyPlan" {
   }
 
 
+   slot_priority {
+    priority = 3
+    slot_id  = "Y4WPM4OKJE"
+  }
+
+
 }
 
 
@@ -368,7 +377,7 @@ resource "aws_lexv2models_slot" "party_type" {
     prompt_specification {
       allow_interrupt            = true
       max_retries                = 1
-      message_selection_strategy = "Random"
+      message_selection_strategy = "Ordered"
 
       message_group {
         message {
@@ -459,7 +468,7 @@ resource "aws_lexv2models_slot" "party_guest_count" {
     prompt_specification {
       allow_interrupt            = true
       max_retries                = 1
-      message_selection_strategy = "Random"
+      message_selection_strategy = "Ordered"
 
       message_group {
         message {
@@ -533,3 +542,186 @@ resource "aws_lexv2models_slot" "party_guest_count" {
   }
 
 }
+
+
+resource "aws_lexv2models_slot" "menu_dietary" {
+  bot_id       = aws_lexv2models_bot.party_bot.id
+  bot_version  = "DRAFT"
+  intent_id    = aws_lexv2models_intent.CompletePartyPlan.intent_id
+  locale_id    = aws_lexv2models_bot_locale.en_us.locale_id
+  name         = "DietaryRestrictions"
+  slot_type_id = aws_lexv2models_slot_type.dietary_restrictions.slot_type_id
+
+
+  value_elicitation_setting {
+    slot_constraint = "Required"
+    prompt_specification {
+      allow_interrupt            = true
+      max_retries                = 1
+      message_selection_strategy = "Random"
+
+      message_group {
+        message {
+          plain_text_message {
+            value = "Are there any dietary restrictions I should know about? Such as vegetarian, vegan, gluten-free, or none?"
+
+          }
+        }
+      }
+
+      prompt_attempts_specification {
+        allow_interrupt = true
+        map_block_key   = "Initial"
+
+        allowed_input_types {
+          allow_audio_input = true
+          allow_dtmf_input  = true
+        }
+
+        audio_and_dtmf_input_specification {
+          start_timeout_ms = 4000
+
+          audio_specification {
+            end_timeout_ms = 640
+            max_length_ms  = 15000
+          }
+
+          dtmf_specification {
+            deletion_character = "*"
+            end_character      = "#"
+            end_timeout_ms     = 5000
+            max_length         = 513
+          }
+        }
+
+        text_input_specification {
+          start_timeout_ms = 30000
+        }
+      }
+
+      prompt_attempts_specification {
+        allow_interrupt = true
+        map_block_key   = "Retry1"
+
+        allowed_input_types {
+          allow_audio_input = true
+          allow_dtmf_input  = true
+        }
+
+        audio_and_dtmf_input_specification {
+          start_timeout_ms = 4000
+
+          audio_specification {
+            end_timeout_ms = 640
+            max_length_ms  = 15000
+          }
+
+          dtmf_specification {
+            deletion_character = "*"
+            end_character      = "#"
+            end_timeout_ms     = 5000
+            max_length         = 513
+          }
+        }
+
+        text_input_specification {
+          start_timeout_ms = 30000
+        }
+      }
+
+    }
+  }
+
+
+
+}
+
+# resource "aws_lexv2models_slot" "music_genre" {
+#   bot_id       = aws_lexv2models_bot.party_bot.id
+#   bot_version  = "DRAFT"
+#   intent_id    = aws_lexv2models_intent.CompletePartyPlan.intent_id
+#   locale_id    = aws_lexv2models_bot_locale.en_us.locale_id
+#   name         = "MusicGenre"
+#   slot_type_id = aws_lexv2models_slot_type.music_genre.slot_type_id
+
+
+#   value_elicitation_setting {
+#     slot_constraint = "Required"
+#     prompt_specification {
+#       allow_interrupt            = true
+#       max_retries                = 1
+#       message_selection_strategy = "Random"
+
+#       message_group {
+#         message {
+#           plain_text_message {
+#             value = "What genre of music do you prefer? For example: pop, rock, jazz, classical, hip-hop, or mix?"
+#           }
+#         }
+#       }
+
+#       prompt_attempts_specification {
+#         allow_interrupt = true
+#         map_block_key   = "Initial"
+
+#         allowed_input_types {
+#           allow_audio_input = true
+#           allow_dtmf_input  = true
+#         }
+
+#         audio_and_dtmf_input_specification {
+#           start_timeout_ms = 4000
+
+#           audio_specification {
+#             end_timeout_ms = 640
+#             max_length_ms  = 15000
+#           }
+
+#           dtmf_specification {
+#             deletion_character = "*"
+#             end_character      = "#"
+#             end_timeout_ms     = 5000
+#             max_length         = 513
+#           }
+#         }
+
+#         text_input_specification {
+#           start_timeout_ms = 30000
+#         }
+#       }
+
+#       prompt_attempts_specification {
+#         allow_interrupt = true
+#         map_block_key   = "Retry1"
+
+#         allowed_input_types {
+#           allow_audio_input = true
+#           allow_dtmf_input  = true
+#         }
+
+#         audio_and_dtmf_input_specification {
+#           start_timeout_ms = 4000
+
+#           audio_specification {
+#             end_timeout_ms = 640
+#             max_length_ms  = 15000
+#           }
+
+#           dtmf_specification {
+#             deletion_character = "*"
+#             end_character      = "#"
+#             end_timeout_ms     = 5000
+#             max_length         = 513
+#           }
+#         }
+
+#         text_input_specification {
+#           start_timeout_ms = 30000
+#         }
+#       }
+
+#     }
+#   }
+
+
+# }
