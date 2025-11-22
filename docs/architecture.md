@@ -2,35 +2,7 @@
 
 This file contains a high-level architecture diagram (Mermaid) showing the resources deployed by this repository and how data flows between them.
 
-```mermaid
-flowchart LR
-  subgraph Client[Client]
-    Browser[User Browser\n(index.html on CloudFront)]
-  end
 
-  Browser -->|HTTPS| CloudFront[CloudFront Distribution]
-  CloudFront -->|S3 GetObject (OAI)| S3[S3 Bucket\n(party-bot-content)]
-
-  Browser -->|Cognito unauthenticated identity| Cognito[Cognito Identity Pool]
-  Browser -.->|Uses temporary credentials| Lex[Amazon Lex V2 Bot]
-
-  Lex -->|Fulfillment hook| Lambda[Lambda: CompletePartyPlan]
-  Lambda -->|Calls| Bedrock[Amazon Bedrock]
-  Lambda -->|Logs| CloudWatch[CloudWatch Logs]
-
-  CloudFront -->|Invalidation| Terraform[Terraform / CI]
-  Terraform -->|Creates| S3
-  Terraform -->|Creates| CloudFront
-  Terraform -->|Creates| Lambda
-  Terraform -->|Creates| Cognito
-  Terraform -->|Creates| Lex
-
-  classDef awsService fill:#eef,stroke:#333,stroke-width:1px;
-  classDef infra fill:#dfd,stroke:#333,stroke-width:1px;
-
-  class S3,CloudFront,Lex,Lambda,Cognito,Bedrock,CloudWatch awsService;
-  class Terraform infra;
-```
 
 ## Components
 
@@ -44,16 +16,7 @@ flowchart LR
 - CloudWatch Logs — Lambda and other services log here.
 - Terraform — Manages the infrastructure; includes automation to upload `index.html` and invalidate CloudFront when content changes.
 
-## How to render
-
-- GitHub: Mermaid diagrams in Markdown may render automatically in some views/previewers.
-- Locally: use a Mermaid CLI or an online Mermaid live editor: https://mermaid.live
-- For a PlantUML version, see `diagrams/architecture.puml` in the repository.
 
 
----
 
-If you'd like, I can also:
-- Generate and commit an SVG/PDF export of the diagram.
-- Create a more detailed sequence diagram showing a complete request flow (browser -> Cognito -> Lex -> Lambda -> Bedrock -> response).
-- Add this diagram to the repository README.
+
